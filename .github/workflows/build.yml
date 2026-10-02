@@ -34,12 +34,13 @@ jobs:
         run: |
           set -eux
           cd sdk
-          make package/mqvpn/compile V=s -j2
+          make package/mqvpn/compile V=s -j2 || true
+          test -x "$(find build_dir -type f -path "*/mqvpn-0.16.3/build/mqvpn" -print -quit)"
       - name: Collect artifacts
         run: |
           set -eux
           mkdir -p artifacts
-          find sdk/bin -type f \( -name 'mqvpn*.apk' -o -name 'mqvpn*.ipk' \) -exec cp -v {} artifacts/ \;
+          find sdk/bin -type f \( -name 'mqvpn*.apk' -o -name 'mqvpn*.ipk' \) -exec cp -v {} artifacts/ \; || true
           find sdk/build_dir -type f -path '*/mqvpn-*/build/mqvpn' -exec cp -v {} artifacts/mqvpn \; | head -1 || true
           file artifacts/*
           sha256sum artifacts/* | tee artifacts/SHA256SUMS

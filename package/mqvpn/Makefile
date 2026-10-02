@@ -74,7 +74,7 @@ define Package/mqvpn
   SUBMENU:=VPN
   TITLE:=mqvpn - QUIC-based VPN
   URL:=https://github.com/mp0rta/mqvpn
-  DEPENDS:=+kmod-tun +libevent2 +libstdcpp +jsonfilter
+  DEPENDS:=+kmod-tun +libevent2 +jsonfilter
 endef
 
 define Package/mqvpn/description

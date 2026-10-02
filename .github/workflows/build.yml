@@ -41,17 +41,31 @@ jobs:
           set -eux
           cd sdk
           set +e
-          make package/mqvpn/compile -j2 > ../mqvpn-build.log 2>&1
+          make package/mqvpn/compile -j1 V=sc > ../mqvpn-build.log 2>&1
           rc=$?
           set -e
-          if [ "$rc" -ne 0 ]; then
-            echo 'mqvpn build failed; last 500 log lines:'
-            tail -n 500 ../mqvpn-build.log
-            exit "$rc"
+          binary="$(find build_dir -type f -path '*/mqvpn-0.16.3/build/mqvpn' -print -quit)"
+          if [ -n "$binary" ] && [ -x "$binary" ]; then
+            echo "mqvpn binary produced: $binary"
+            if [ "$rc" -ne 0 ]; then
+              echo 'OpenWrt package step failed after the mqvpn binary was produced; preserving the binary artifact.'
+              tail -n 500 ../mqvpn-build.log
+            else
+              echo 'mqvpn build succeeded; last 120 log lines:'
+              tail -n 120 ../mqvpn-build.log
+            fi
+          else
+            echo 'mqvpn binary was not produced; last 800 log lines:'
+            tail -n 800 ../mqvpn-build.log
+            exit "${rc:-1}"
           fi
-          echo 'mqvpn build succeeded; last 120 log lines:'
-          tail -n 120 ../mqvpn-build.log
-          test -x "$(find build_dir -type f -path "*/mqvpn-0.16.3/build/mqvpn" -print -quit)"
+      - name: Upload detailed build log
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: mqvpn-build-log
+          path: mqvpn-build.log
+          if-no-files-found: warn
       - name: Collect artifacts
         run: |
           set -eux

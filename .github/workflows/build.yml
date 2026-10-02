@@ -1,0 +1,48 @@
+name: build-openwrt-mqvpn
+on:
+  workflow_dispatch:
+  push:
+    branches: [ main ]
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install host tools
+        run: sudo apt-get update && sudo apt-get install -y zstd build-essential cmake ninja-build git
+      - name: Download OpenWrt SDK
+        run: |
+          set -eux
+          url='https://downloads.openwrt.org/releases/25.12-SNAPSHOT/targets/rockchip/armv8/openwrt-sdk-25.12-SNAPSHOT-rockchip-armv8_gcc-14.3.0_musl.Linux-x86_64.tar.zst'
+          curl -fL "$url" -o sdk.tar.zst
+          echo 'a16633da6467c46f191ccec09e7b6ad04be7304b2fdd9ab696c27c0005e8f1cb  sdk.tar.zst' | sha256sum -c -
+          mkdir sdk
+          tar --zstd -xf sdk.tar.zst -C sdk --strip-components=1
+      - name: Prepare package
+        run: |
+          set -eux
+          cp -a package/mqvpn sdk/package/mqvpn
+          cd sdk
+          ./scripts/feeds update -a
+          ./scripts/feeds install libevent2 jsonfilter
+          make defconfig
+      - name: Build mqvpn in OpenWrt SDK
+        run: |
+          set -eux
+          cd sdk
+          make package/mqvpn/compile V=s -j2
+      - name: Collect artifacts
+        run: |
+          set -eux
+          mkdir -p artifacts
+          find sdk/bin -type f \( -name 'mqvpn*.apk' -o -name 'mqvpn*.ipk' \) -exec cp -v {} artifacts/ \;
+          find sdk/build_dir -type f -path '*/mqvpn-*/build/mqvpn' -exec cp -v {} artifacts/mqvpn \; | head -1 || true
+          file artifacts/*
+          sha256sum artifacts/* | tee artifacts/SHA256SUMS
+          test -x artifacts/mqvpn
+      - uses: actions/upload-artifact@v4
+        with:
+          name: mqvpn-openwrt-aarch64
+          path: artifacts/
+          if-no-files-found: error

@@ -16,7 +16,10 @@ jobs:
           set -eux
           url='https://downloads.openwrt.org/releases/25.12-SNAPSHOT/targets/rockchip/armv8/openwrt-sdk-25.12-SNAPSHOT-rockchip-armv8_gcc-14.3.0_musl.Linux-x86_64.tar.zst'
           curl -fL "$url" -o sdk.tar.zst
-          echo 'a16633da6467c46f191ccec09e7b6ad04be7304b2fdd9ab696c27c0005e8f1cb  sdk.tar.zst' | sha256sum -c -
+          curl -fL 'https://downloads.openwrt.org/releases/25.12-SNAPSHOT/targets/rockchip/armv8/sha256sums' -o sha256sums
+          expected=$(awk '/openwrt-sdk-25.12-SNAPSHOT-rockchip-armv8_gcc-14.3.0_musl.Linux-x86_64.tar.zst$/ {print $1}' sha256sums)
+          test -n "$expected"
+          echo "$expected  sdk.tar.zst" | sha256sum -c -
           mkdir sdk
           tar --zstd -xf sdk.tar.zst -C sdk --strip-components=1
       - name: Prepare package
